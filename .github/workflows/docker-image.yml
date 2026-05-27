@@ -20,7 +20,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js (LTS recommended)
+      - name: Set up Node.js (LTS)
         uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -60,7 +60,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Trivy vulnerability scanner (FS)
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -140,7 +140,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Trivy image scan for backend
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: image
           image-ref: ${{ vars.DOCKERHUB_USERNAME }}/backend:${{ env.IMAGE_TAG }}
@@ -151,7 +151,7 @@ jobs:
           severity: CRITICAL,HIGH
 
       - name: Run Trivy image scan for frontend
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: image
           image-ref: ${{ vars.DOCKERHUB_USERNAME }}/frontend:${{ env.IMAGE_TAG }}
@@ -182,11 +182,11 @@ jobs:
           curl -sL https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64 -o yq
           sudo install yq /usr/local/bin/yq
 
-          # Remove accidental .spec.template from Service docs
+          # Safety cleanup: remove accidental .spec.template from Service docs
           yq -i '(. | select(.kind=="Service")) |= del(.spec.template)' k8s-prod/backend.yaml
           yq -i '(. | select(.kind=="Service")) |= del(.spec.template)' k8s-prod/frontend.yaml
 
-          # Update backend deployment image
+          # Update backend Deployment image only
           yq -i '
             (. | select(.kind=="Deployment")
                | .spec.template.spec.containers[]
@@ -195,7 +195,7 @@ jobs:
             = "${{ vars.DOCKERHUB_USERNAME }}/backend:" + strenv(IMAGE_TAG)
           ' k8s-prod/backend.yaml
 
-          # Update frontend deployment image
+          # Update frontend Deployment image only
           yq -i '
             (. | select(.kind=="Deployment")
                | .spec.template.spec.containers[]
